@@ -10,10 +10,65 @@
 #define EVENT_BUFSIZE 4096
 #define MAX_PATH_LENGTH 256
 
+struct test {
+    char *filename;
+    char *filetype;
+    struct test *next;
+};   //The Node of List
+
+
+void initNode(struct test *pNode)//char *filetype1)  //two level point
+{
+    //be careful! because *pNode is empty,so it can't read **pNode
+     pNode = malloc(sizeof(struct test));
+     memset(pNode, 0, sizeof(struct test));
+    if (pNode == NULL)
+    {
+        printf("malloc error\n");
+        exit(EXIT_FAILURE);
+    }
+    pNode->next = NULL;
+
+    printf("List initial success!\n");
+/*
+    pNode->filetype = malloc(sizeof(filetype1));  //You must malloc size for variable.
+    pNode->filetype = filetype1;
+    printf("filetype is %s\n",pNode->filetype); */
+}
+
+struct test* TravelList(struct test *head)
+{
+    struct test* p = head->next;  //curial sentence
+    while(NULL != p)
+    {
+        head = p;     //this is very important
+        p = p->next;
+    }
+
+    return head;
+}
+
+
+void* AddNode(struct test *head, struct test *pNode,char* filename;char* filetype)
+{
+    struct test *tail = TravelList(head);
+    pNode = malloc(sizeof(struct test pNode));
+    tail->next = pNode;
+
+    pNode->filename = malloc(sizeof(char*)*10);
+    pNode->filename = filename;
+    pNode->filename = malloc(sizeof(char*)*10);
+    pNode->filetype = filetype;
+    pNode->next = NULL;
+
+    return ;
+}
+
+
 int main(int argc, char **argv)
 {
 
-   int len = 0;
+    int len = 0;
     int fd,dir_wd;
     const char* dirname = argv[1];
     if(argc != 2)
@@ -25,6 +80,14 @@ int main(int argc, char **argv)
     char buf[EVENT_BUFSIZE];
     char *cur = buf;
     char *end;
+    char *tmp=NULL;
+    char abs_curdir[MAX_PATH_LENGTH];
+    getcwd(abs_curdir,MAX_PATH_LENGTH);
+    strncat(abs_curdir,"/",4);
+    struct stat s;
+    struct test *a = NULL;
+   
+    initNode(a);
 
     fd = inotify_init();
     if(fd == 1)
@@ -64,18 +127,11 @@ int main(int argc, char **argv)
             printf("cur : %p\n",cur + sizeof(struct inotify_event));
             printf("end : %p\n",end);
 
-            char abs_curdir[MAX_PATH_LENGTH];
-            getcwd(abs_curdir,MAX_PATH_LENGTH);
-            strncat(abs_curdir,"/",4);
-
             char *relat=NULL;
             relat =  strncat(abs_curdir,e->name,e->len);
-
-            printf("relat is %s\n",relat);
             if(e->mask & IN_CREATE)
             {
-               struct stat s;
-               if( stat(relat,&s) == 0 )
+                if( stat(relat,&s) == 0 )
                 {
                     printf("Mode: %lo (octal)\n",
 		                    (unsigned long) s.st_mode);
@@ -83,18 +139,22 @@ int main(int argc, char **argv)
                     if( s.st_mode & S_IFDIR )
                     {
                         //it's a directory
+                        AddNode(a,a1,e->name,"directory")
+                        printf("filetype is %s\n",a1->filetype);
                         printf("directory %s is created.\n",relat );
                      }
                     else if( s.st_mode & S_IFREG )
                     {
                         //it's a file
+                        AddNode(a,a1,e->name,"file");
+                        printf("filetype is %s\n",tmp);
                         printf("file %s is created.\n",relat);
                      }
                     else
                     {
-                        //something else
+                       //something else
                         printf("unknown types.\n");
-                    }
+                     }
                 }
                 else
                 {
@@ -105,31 +165,16 @@ int main(int argc, char **argv)
             }
             if(e->mask & IN_DELETE)
             {
-               struct stat s1;
-               if( stat(relat, &s1) == 0 )
+             //   printf("filetype is %s\n",tmp);
+                if(strcmp(tmp, "file") == 0 )
                 {
-                    if( s1.st_mode & S_IFDIR )
-                    {
-                        //it's a directory
-                        printf("directory %s is deleted.\n",relat);
-                    }
-                    else if( s1.st_mode & S_IFREG )
-                    {
-                        //it's a file
-                        printf("file %s is deleted.\n",relat);
-                     }
-                    else
-                    {
-                        //something else
-                        printf("unknown types.\n");
-                    }
+                    printf("file %s is deleted.\n",e->name);
                 }
-                else
+                if(strcmp(tmp, "directory") == 0 )
                 {
-                    int errnum = errno;
-                    //error
-                    return 1;
+                    printf("directory is deleted.\n",relat);
                 }
+
        //         inotify_rm_watch(fd, dir_wd);
                 memset(abs_curdir,0,256);
             }
