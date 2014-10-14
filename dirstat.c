@@ -10,14 +10,15 @@
 #define EVENT_BUFSIZE 4096
 #define MAX_PATH_LENGTH 256
 
-struct test {
+struct test
+{
     char *filename;
     char *filetype;
     struct test *next;
 };   //The Node of List
 
 
-void initNode(struct test *pNode)//char *filetype1)  //two level point
+void initNode(struct test *pNode)//two level point
 {
     //be careful! because *pNode is empty,so it can't read **pNode
      pNode = malloc(sizeof(struct test));
@@ -49,17 +50,18 @@ struct test* TravelList(struct test *head)
 }
 
 
-void* AddNode(struct test *head, struct test *pNode,char* filename;char* filetype)
+void* AddNode(struct test* h, struct test *Node,char* filename,char* filetype)
 {
-    struct test *tail = TravelList(head);
-    pNode = malloc(sizeof(struct test pNode));
-    tail->next = pNode;
+    struct test *tail = TravelList(h);
+    Node = malloc(sizeof(struct test));
+    memset(Node, 0, sizeof(struct test));
+    tail->next = Node;
 
-    pNode->filename = malloc(sizeof(char*)*10);
-    pNode->filename = filename;
-    pNode->filename = malloc(sizeof(char*)*10);
-    pNode->filetype = filetype;
-    pNode->next = NULL;
+    Node->filename = malloc(sizeof(char*)*10);
+    Node->filename = filename;
+    Node->filetype = malloc(sizeof(char*)*10);
+    Node->filetype = filetype;
+    Node->next = NULL;
 
     return ;
 }
@@ -80,14 +82,13 @@ int main(int argc, char **argv)
     char buf[EVENT_BUFSIZE];
     char *cur = buf;
     char *end;
-    char *tmp=NULL;
     char abs_curdir[MAX_PATH_LENGTH];
     getcwd(abs_curdir,MAX_PATH_LENGTH);
     strncat(abs_curdir,"/",4);
     struct stat s;
     struct test *a = NULL;
-   
-    initNode(a);
+
+    initNode(a);   //init List 
 
     fd = inotify_init();
     if(fd == 1)
@@ -129,6 +130,7 @@ int main(int argc, char **argv)
 
             char *relat=NULL;
             relat =  strncat(abs_curdir,e->name,e->len);
+            printf("relat is %s\n",relat);
             if(e->mask & IN_CREATE)
             {
                 if( stat(relat,&s) == 0 )
@@ -139,15 +141,19 @@ int main(int argc, char **argv)
                     if( s.st_mode & S_IFDIR )
                     {
                         //it's a directory
-                        AddNode(a,a1,e->name,"directory")
-                        printf("filetype is %s\n",a1->filetype);
+                        struct test *name;
+                        strcpy(name,e->name);
+                        AddNode(a,name,name,"directory");
+                        printf("filetype is %s\n",name->filetype);
                         printf("directory %s is created.\n",relat );
                      }
                     else if( s.st_mode & S_IFREG )
                     {
                         //it's a file
-                        AddNode(a,a1,e->name,"file");
-                        printf("filetype is %s\n",tmp);
+                        struct test *name;
+                        strcpy(name,e->name);
+                        AddNode(a,name,name,"file");
+                        printf("filetype is %s\n",name->filetype);
                         printf("file %s is created.\n",relat);
                      }
                     else
@@ -162,15 +168,16 @@ int main(int argc, char **argv)
                     printf("stat is wrong.\n");
                     return 1;
                 }
+                relat = dirname;
             }
             if(e->mask & IN_DELETE)
             {
              //   printf("filetype is %s\n",tmp);
-                if(strcmp(tmp, "file") == 0 )
+                if(strcmp(e->name, "file") == 0 )
                 {
                     printf("file %s is deleted.\n",e->name);
                 }
-                if(strcmp(tmp, "directory") == 0 )
+                if(strcmp(e->name, "directory") == 0 )
                 {
                     printf("directory is deleted.\n",relat);
                 }
