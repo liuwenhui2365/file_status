@@ -12,34 +12,30 @@
 
 struct test
 {
-    char *filename;
+    char *name;
     char *filetype;
     struct test *next;
 };   //The Node of List
 
 
-void initNode(struct test *pNode)//two level point
+void initNode(struct test **pNode,char *name)//two level point
 {
     //be careful! because *pNode is empty,so it can't read **pNode
-     pNode = malloc(sizeof(struct test));
-     memset(pNode, 0, sizeof(struct test));
-    if (pNode == NULL)
+    *pNode = malloc(sizeof(struct test));
+     memset(*pNode, 0, sizeof(struct test));
+    if (*pNode == NULL)
     {
         printf("malloc error\n");
         exit(EXIT_FAILURE);
     }
-    pNode->next = NULL;
 
-    printf("List initial success!\n");
-/*
-    pNode->filetype = malloc(sizeof(filetype1));  //You must malloc size for variable.
-    pNode->filetype = filetype1;
-    printf("filetype is %s\n",pNode->filetype); */
+    printf("name is %s\n",name);
 }
 
 struct test* TravelList(struct test *head)
 {
-    struct test* p = head->next;  //curial sentence
+    struct test* p = NULL;
+    p = head->next;  //curial sentence
     while(NULL != p)
     {
         head = p;     //this is very important
@@ -49,16 +45,11 @@ struct test* TravelList(struct test *head)
     return head;
 }
 
-
-void* AddNode(struct test* h, struct test *Node,char* filename,char* filetype)
+void* AddNode(struct test* h, struct test *Node,char* filetype)
 {
     struct test *tail = TravelList(h);
-    Node = malloc(sizeof(struct test));
-    memset(Node, 0, sizeof(struct test));
     tail->next = Node;
 
-    Node->filename = malloc(sizeof(char*)*10);
-    Node->filename = filename;
     Node->filetype = malloc(sizeof(char*)*10);
     Node->filetype = filetype;
     Node->next = NULL;
@@ -86,9 +77,9 @@ int main(int argc, char **argv)
     getcwd(abs_curdir,MAX_PATH_LENGTH);
     strncat(abs_curdir,"/",4);
     struct stat s;
-    struct test *a = NULL;
 
-    initNode(a);   //init List 
+    struct test* a;
+    initNode(&a,"a");
 
     fd = inotify_init();
     if(fd == 1)
@@ -125,36 +116,41 @@ int main(int argc, char **argv)
                 break;
             }
 
-            printf("cur : %p\n",cur + sizeof(struct inotify_event));
-            printf("end : %p\n",end);
+        //    printf("cur : %p\n",cur + sizeof(struct inotify_event));
+        //    printf("end : %p\n",end);
 
             char *relat=NULL;
-            relat =  strncat(abs_curdir,e->name,e->len);
+         //   relat =  strncat(abs_curdir,e->name,e->len);
+            relat = abs_curdir;
             printf("relat is %s\n",relat);
             if(e->mask & IN_CREATE)
             {
+                printf("&s is %p\n",&s);
                 if( stat(relat,&s) == 0 )
                 {
-                    printf("Mode: %lo (octal)\n",
-		                    (unsigned long) s.st_mode);
-
+                    printf("Mode: %lo (octal)\n", (unsigned long) s.st_mode);
                     if( s.st_mode & S_IFDIR )
                     {
                         //it's a directory
+                        printf("directory is created success!\n");
                         struct test *name;
-                        strcpy(name,e->name);
-                        AddNode(a,name,name,"directory");
+                        name = (struct test*) e->name;
+                        initNode(&name,e->name);
+                        AddNode(a,name,"directory");
                         printf("filetype is %s\n",name->filetype);
-                        printf("directory %s is created.\n",relat );
+//                          printf("directory %s is created.\n",relat );
                      }
                     else if( s.st_mode & S_IFREG )
                     {
                         //it's a file
+                        printf("file is created success!\n");
                         struct test *name;
-                        strcpy(name,e->name);
-                        AddNode(a,name,name,"file");
+                      //  strcpy(name,e->name);  //warning
+                        name = (struct test*) e->name;
+                        initNode(&name,e->name);
+                        AddNode(a,name,"file");
                         printf("filetype is %s\n",name->filetype);
-                        printf("file %s is created.\n",relat);
+                     //    printf("file %s is created.\n",relat);
                      }
                     else
                     {
@@ -168,7 +164,7 @@ int main(int argc, char **argv)
                     printf("stat is wrong.\n");
                     return 1;
                 }
-                relat = dirname;
+                relat = (char*)dirname;
             }
             if(e->mask & IN_DELETE)
             {
@@ -179,7 +175,7 @@ int main(int argc, char **argv)
                 }
                 if(strcmp(e->name, "directory") == 0 )
                 {
-                    printf("directory is deleted.\n",relat);
+                    printf("directory %s is deleted.\n",relat);
                 }
 
        //         inotify_rm_watch(fd, dir_wd);
