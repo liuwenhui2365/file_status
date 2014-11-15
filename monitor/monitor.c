@@ -51,9 +51,9 @@ char* search_monitor_dirs(struct monitor_dirs* head,int dir_wd)
     {
         if(dir_wd==p->dir_wd)  //think about "=" and "=="
         {
-            printf("find abs_path: %s, dir_wd:%d\n",p->abs_path,p->dir_wd);
+      //    printf("find abs_path: %s, dir_wd:%d\n",p->abs_path,p->dir_wd);
             return p->abs_path;
-         }
+        }
         else
         {
              p = p->next;
@@ -86,23 +86,22 @@ void* remove_monitor_dirs(struct monitor_dirs* head,int dir_wd)
 }
 
 
-void* dump_monitor_dirs(struct monitor_dirs *head)
+void dump_monitor_dirs(struct monitor_dirs *head)
 {
+    printf("dump monitor dirs: \n");
     struct monitor_dirs* p = NULL;
     p = head->next;
     while(NULL != p)
     {
         printf("abs_path: %s, dir_wd:%d\n",p->abs_path,p->dir_wd);
-        head = p;
+        //head = p;
         p = p->next;
     }
-
-    return ;
 }
 
 
 void* add_monitor_dirs(struct monitor_dirs* head,
-                       struct monitor_dirs *new_node,
+                       struct monitor_dirs* new_node,
                        char   *abs_path,int dir_wd)
 {
     struct monitor_dirs* tail = travel_monitor_dirs(head);
@@ -131,7 +130,7 @@ void initList(struct test **pNode,char *name)//two level point
         printf("malloc error\n");
         exit(EXIT_FAILURE);
     }
-   memset(*pNode, 0, sizeof(struct test));
+    memset(*pNode, 0, sizeof(struct test));
 
    // printf("name is %s\n",name);
 }
@@ -213,8 +212,8 @@ char listDir(char *path,struct test *a,
 {
     DIR              *pDir ;
     struct dirent    *ent  ;
-    char              abspath[512];
-    char              childpath[512];
+    char             abspath[512];
+    char             childpath[512];
     int              dir_wd;
     pDir=opendir(path);
  //   memset(childpath,0,sizeof(childpath));
@@ -239,7 +238,7 @@ char listDir(char *path,struct test *a,
             strcat(abspath,"/");
             strcat(abspath,ent->d_name);
      //       printf("%s",abspath);
-           strcat(childpath,"/");
+            strcat(childpath,"/");
             strcat(childpath,ent->d_name);
             if(sign=="add")
             {
@@ -320,10 +319,8 @@ int main(int argc, char **argv)
     realpath(dirname,abs_curdir);
     strncat(abs_curdir,"/",2);
 
-    struct stat s;
-
     printf("\nwelcome to use monitor filesystem!\n\n");
-    printf("our monitor system is used to monitor the file or directory.\n");
+    printf("our monitor system is used to monitor the file or directory.\n\n");
 
     struct test* a;
     initList(&a,"first_node");
@@ -354,20 +351,22 @@ int main(int argc, char **argv)
     }
     printf("watch dir_wd :%d\n",dir_wd);
     printf("watch dir: %s\n",abs_curdir);
+    struct monitor_dirs* new_monitor_dirs;
+    init_monitor_dirs(&new_monitor_dirs);
+    //add monitor_dirs of first node
+    add_monitor_dirs(monitor_dirs_head,new_monitor_dirs,abs_curdir,dir_wd);
     listDir(argv[1],a,"add",fd,monitor_dirs_head);
     printf("The directory has some file or directory already:\n");
     print_List(a);
-    struct monitor_dirs* new_monitor_dirs;
-    init_monitor_dirs(&new_monitor_dirs);
-    add_monitor_dirs(monitor_dirs_head,new_monitor_dirs,abs_curdir,dir_wd);
     dump_monitor_dirs(monitor_dirs_head);
-      //  printf("the directory of monitor is empty!\n");
+  //  printf("the directory of monitor is empty!\n");
 
-    printf("filesystem init finish.\n");
+    struct stat s;
+    printf("filesystem init finish.\n\n");
 
     while(1)
     {
-       len = read(fd,cur,EVENT_BUFSIZE - len);
+        len = read(fd,cur,EVENT_BUFSIZE - len);
         if(len <= 0)
         {
             perror("read inotify event failed\n");
@@ -389,19 +388,27 @@ int main(int argc, char **argv)
         //    printf("cur : %p\n",cur + sizeof(struct inotify_event));
         //    printf("end : %p\n",end);
 
-//            char *relat=NULL;
-          //  char relat[MAX_PATH_LENGTH] = {0};
-            char *relat = search_monitor_dirs(monitor_dirs_head,e->wd);
-            printf("relat is %s\n",relat);
+        //    char *relat=NULL;
+          //get the abs_path of current operation accord to wd
+            char* match_dir = search_monitor_dirs(monitor_dirs_head,e->wd);
+          //  dump_monitor_dirs(monitor_dirs_head);
+            char relat[MAX_PATH_LENGTH] = {0};
+            strcat(relat,match_dir);
+            strcat(relat,e->name);
+            printf("before add {relat}:%s\n",relat);
             if(e->mask & IN_CREATE)
             {
+                printf("in create\n");
                 if( stat(relat,&s) == 0 )
                 {
         //            printf("Mode: %lo (octal)\n", (unsigned long) s.st_mode);
                     if( s.st_mode & S_IFDIR )
                     {
+                        printf("is dir\n");
                         //it's a directory
-                        dir_wd = inotify_add_watch(fd,relat,
+                        //get the abspath of create directory
+                        //add watch and get the dir_wd
+                        dir_wd = inotify_add_watch(fd,abs_curdir,
                                 IN_CREATE | IN_ISDIR | IN_DELETE |\
                                 IN_MOVED_TO | IN_MOVED_FROM |\
                                 IN_CLOSE_WRITE );
@@ -410,26 +417,37 @@ int main(int argc, char **argv)
                             perror("inotify_add_watch failed\n");
                             goto exit;
                         }
-                        printf("new watch dir_wd :%d\n",dir_wd);
-                        printf("watch dir: %s\n",abs_curdir);
+                        strcat(relat,"/");
+                      //create new file_node and add to the list
                         struct test *name;
                         initList(&name,e->name);
-                        strcat(relat,"/");
-                        printf("wd is %d\n",e->wd);
+                      //  printf("wd is %d\n",e->wd);
                         AddNode(a,name,relat,'d');
                         printf("add directory success!\n");
                         printf("filename: %s\t filetype: %c\n",name->filename,name->filetype);
+                        //create new monitor_node and add to the monitor_dirs
+                        printf("new watch wd :%d\n",e->wd);
+                        printf("new watch dir_wd :%d\n",dir_wd);
+                        printf("watch dir: %s\n",relat);
+                        struct monitor_dirs* new_monitor_dirs;
+                        init_monitor_dirs(&new_monitor_dirs);
+                        //add new abs_path of creat directory
+                        add_monitor_dirs(monitor_dirs_head,new_monitor_dirs,abs_curdir,dir_wd);
+                       // printf("wd is %d\n",e->wd);
+                        printf("add directory_monitor success!\n");
+                        dump_monitor_dirs(monitor_dirs_head);
                     }
                     else if( s.st_mode & S_IFREG )
                     {
                         //it's a file
+                        //create new directory_node and add to the list
+                        printf("is file\n");
                         struct test *name;
-                      //  strcpy(name,e->name);  //warning
-                     //   name = (struct test*) e->name;
                         initList(&name,e->name);
+                        printf("relat is %s\n",relat);
                         AddNode(a,name,relat,'f');
-                        printf("add file success!\n");
-                        printf("filename: %s\t filetype: %c\n",name->filename,name->filetype);
+                        printf("add filename: %s\t filetype: %c success.\n",
+                               name->filename,name->filetype);
                      }
                     else
                     {
@@ -440,7 +458,7 @@ int main(int argc, char **argv)
                 else
                 {
                     //error
-                    printf("stat is wrong when create.\n");
+                    perror("stat is wrong when create.\n");
                     return 1;
                 }
             }
@@ -458,11 +476,11 @@ int main(int argc, char **argv)
                 listDir(relat,a,"add",fd,monitor_dirs_head);
                 print_List(a);
             }
-            if(e->mask & IN_CLOSE_WRITE)
+       /*     if(e->mask & IN_CLOSE_WRITE)
             {
                 printf("file %s is modified.\n",e->name);
             }
-
+        */
             if(e->mask & IN_MOVED_FROM)
             {
                 if( s.st_mode & S_IFDIR )
@@ -491,6 +509,8 @@ int main(int argc, char **argv)
                 printf("others stat is wrong.\n");
                // getcwd(e->name,MAX_PATH_LENGTH));
             }*/
+            printf("after add name {relat} is %s\n",relat);
+            dump_monitor_dirs(monitor_dirs_head);
             cur += sizeof(struct inotify_event) + e->len;
         }
 
