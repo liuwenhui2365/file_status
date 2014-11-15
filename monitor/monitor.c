@@ -349,8 +349,7 @@ int main(int argc, char **argv)
         perror("inotify_add_watch failed\n");
         goto exit;
     }
-    printf("watch dir_wd :%d\n",dir_wd);
-    printf("watch dir: %s\n",abs_curdir);
+    printf("new watch dir_wd :%d\n",dir_wd);
     struct monitor_dirs* new_monitor_dirs;
     init_monitor_dirs(&new_monitor_dirs);
     //add monitor_dirs of first node
@@ -395,7 +394,8 @@ int main(int argc, char **argv)
             char relat[MAX_PATH_LENGTH] = {0};
             strcat(relat,match_dir);
             strcat(relat,e->name);
-            printf("before add {relat}:%s\n",relat);
+            //the '/' is imporant to add dir_wd
+          //  printf("before add {relat}:%s\n",relat);
             if(e->mask & IN_CREATE)
             {
                 printf("in create\n");
@@ -405,10 +405,12 @@ int main(int argc, char **argv)
                     if( s.st_mode & S_IFDIR )
                     {
                         printf("is dir\n");
+                        //be careful position
+                        strcat(relat,"/");
                         //it's a directory
                         //get the abspath of create directory
                         //add watch and get the dir_wd
-                        dir_wd = inotify_add_watch(fd,abs_curdir,
+                        dir_wd = inotify_add_watch(fd,relat,
                                 IN_CREATE | IN_ISDIR | IN_DELETE |\
                                 IN_MOVED_TO | IN_MOVED_FROM |\
                                 IN_CLOSE_WRITE );
@@ -417,25 +419,23 @@ int main(int argc, char **argv)
                             perror("inotify_add_watch failed\n");
                             goto exit;
                         }
-                        strcat(relat,"/");
                       //create new file_node and add to the list
                         struct test *name;
                         initList(&name,e->name);
                       //  printf("wd is %d\n",e->wd);
                         AddNode(a,name,relat,'d');
-                        printf("add directory success!\n");
-                        printf("filename: %s\t filetype: %c\n",name->filename,name->filetype);
+                        printf("add directory's filename: %s\t filetype: %c\
+                            success.\n",name->filename,name->filetype);
                         //create new monitor_node and add to the monitor_dirs
-                        printf("new watch wd :%d\n",e->wd);
-                        printf("new watch dir_wd :%d\n",dir_wd);
-                        printf("watch dir: %s\n",relat);
+                       // printf("new watch dir_wd :%d\n",dir_wd);
+                        printf("watch dir_path: %s\n",relat);
                         struct monitor_dirs* new_monitor_dirs;
                         init_monitor_dirs(&new_monitor_dirs);
                         //add new abs_path of creat directory
-                        add_monitor_dirs(monitor_dirs_head,new_monitor_dirs,abs_curdir,dir_wd);
+                        add_monitor_dirs(monitor_dirs_head,new_monitor_dirs,relat,dir_wd);
                        // printf("wd is %d\n",e->wd);
-                        printf("add directory_monitor success!\n");
-                        dump_monitor_dirs(monitor_dirs_head);
+                      //  printf("add directory_monitor success!\n");
+                      //  dump_monitor_dirs(monitor_dirs_head);
                     }
                     else if( s.st_mode & S_IFREG )
                     {
@@ -464,16 +464,77 @@ int main(int argc, char **argv)
             }
             if(e->mask & IN_DELETE)
             {
-            //     printf("relat is %s\n",relat);
-                 DeleteNode(a,relat);
-                 printf("delete success.\n");
-     //            print_List(a);
-     //         inotify_rm_watch(fd, dir_wd);
+            //  printf("relat is %s\n",relat);
+                printf("in delete\n");
+                if( stat(relat,&s) == 0 )
+                {
+                    if( s.st_mode & S_IFDIR )
+                    {
+                        printf("is dir\n");
+                        //it's a directory
+                        inotify_rm_watch(fd, dir_wd);
+                        DeleteNode(a,relat);
+                        remove_monitor_dirs(monitor_dirs_head,dir_wd);
+                        printf("delete a monitor_node of directory_monitor success!\n");
+                        dump_monitor_dirs(monitor_dirs_head);
+                    }
+                    else if( s.st_mode & S_IFREG )
+                    {
+                        //it's a file
+                        //create new directory_node and add to the list
+                        printf("is file\n");
+                        DeleteNode(a,relat);
+                     }
+                    else
+                    {
+                       //something else
+                        printf("unknown types.\n");
+                     }
+                }
+                else
+                {
+                    //error
+                    perror("stat is wrong when create.\n");
+                    return 1;
+                }
+                printf("delete a node of file_list  success.\n");
+                print_List(a);
             }
             if(e->mask & IN_MOVED_TO)
             {
-                printf("dentry %s is moved here from other place.\n",relat);
-                listDir(relat,a,"add",fd,monitor_dirs_head);
+                printf("moved here from other place.\n");
+                if( stat(relat,&s) == 0 )
+                {
+                    if( s.st_mode & S_IFDIR )
+                    {
+                        printf("is dir\n");
+                        //it's a directory
+                        inotify_rm_watch(fd, dir_wd);
+                        DeleteNode(a,relat);
+                        remove_monitor_dirs(monitor_dirs_head,dir_wd);
+                        printf("remove a monitor_node of directory_monitor success!\n");
+                        dump_monitor_dirs(monitor_dirs_head);
+                    }
+                    else if( s.st_mode & S_IFREG )
+                    {
+                        //it's a file
+                        //create new directory_node and add to the list
+                        printf("is file\n");
+                        DeleteNode(a,relat);
+                     }
+                    else
+                    {
+                       //something else
+                        printf("unknown types.\n");
+                     }
+                }
+                else
+                {
+                    //error
+                    perror("stat is wrong when create.\n");
+                    return 1;
+                }
+                printf("remove a node of file_list  success.\n");
                 print_List(a);
             }
        /*     if(e->mask & IN_CLOSE_WRITE)
@@ -510,7 +571,6 @@ int main(int argc, char **argv)
                // getcwd(e->name,MAX_PATH_LENGTH));
             }*/
             printf("after add name {relat} is %s\n",relat);
-            dump_monitor_dirs(monitor_dirs_head);
             cur += sizeof(struct inotify_event) + e->len;
         }
 
