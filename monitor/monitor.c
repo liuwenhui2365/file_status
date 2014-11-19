@@ -60,6 +60,7 @@ char* search_monitor_dirs(struct monitor_dirs* head,int dir_wd)
         }
     }
     printf("can't find the abs_path!\n");
+    return NULL;
 }
 
 void* remove_monitor_dirs(struct monitor_dirs* head,int fd,char* path)
@@ -381,7 +382,7 @@ char listDir(char *path,struct test *a,
                 initList(&name,ent->d_name);
                 if(sign=="add")
                 {
-                    AddNode(a,name,childpath,'f');
+                    AddNode(a,name,childpath,'d');
                     listDir(abspath,a,"add",fd,monitor_dirs_head);
                 }
                 }
@@ -515,7 +516,13 @@ int main(int argc, char **argv)
         //    char *relat=NULL;
           //get the abs_path of current operation accord to wd
           //use a middle variable to store the value is imporant
+            printf("wd is %d\n",e->wd);
             char* match_dir = search_monitor_dirs(monitor_dirs_head,e->wd);
+            if (match_dir == NULL)
+            {
+                printf("search is empty, continue\n");
+                break;
+            }
           //  dump_monitor_dirs(monitor_dirs_head);
             char relat[MAX_PATH_LENGTH] = {0};
             strcat(relat,match_dir);
@@ -598,8 +605,8 @@ int main(int argc, char **argv)
                     printf("is dir\n");
                     strcat(relat,"/");
                     printf("delete the directory's ");
-                 //   printf("delete the dir_wd is %d\n",dir_wd);
-                 //  printf("e->wd is %d\n",e->wd);
+                //  printf("delete the dir_wd is %d\n",dir_wd);
+                //  printf("e->wd is %d\n",e->wd);
                     DeleteNode_bydir(a,relat);
                     remove_monitor_bydirs(monitor_dirs_head,fd,relat);
                     printf("delete monitor_node of directory_monitor success!\n");
@@ -618,12 +625,23 @@ int main(int argc, char **argv)
                     //something else
                     goto exit;
                 }
-                printf("delete a node of file_list  success.\n");
-                print_List(a);
             }
             if(e->mask & IN_MOVED_TO)
             {
-                printf("moved here from other place.\n");
+                printf("moved from other place.\n");
+                //strcat(relat,"/");
+                //it's a directory
+                //get the abspath of create directory
+                //add watch and get the dir_wd
+                dir_wd = inotify_add_watch(fd,relat,
+                        IN_CREATE | IN_ISDIR | IN_DELETE |\
+                        IN_MOVED_TO | IN_MOVED_FROM |\
+                        IN_CLOSE_WRITE );
+                if(dir_wd == -1)
+                {
+                    perror("inotify_add_watch failed\n");
+                    goto exit;
+                }
                 printf("relat is %s\n",relat);
                 if( stat(relat,&s) == 0 )
                 {
@@ -632,6 +650,15 @@ int main(int argc, char **argv)
                         //it's a directory
                         printf("is dir\n");
                         strcat(relat,"/");
+
+                        struct test *name;
+                        initList(&name,e->name);
+                        AddNode(a,name,relat,'d');
+                        printf("add directory's filename: %s, filetype: %c success.\n",name->filename,name->filetype);
+
+                        struct monitor_dirs* new_monitor_dirs;
+                        init_monitor_dirs(&new_monitor_dirs);
+                        add_monitor_dirs(monitor_dirs_head,new_monitor_dirs,relat,dir_wd);
                         listDir(relat,a,"add",fd,monitor_dirs_head);
                     }
                     else if( s.st_mode & S_IFREG )
@@ -641,12 +668,12 @@ int main(int argc, char **argv)
                         struct test *name;
                         initList(&name,e->name);
                         AddNode(a,name,relat,'f');
-                     }
+                    }
                     else
                     {
                        //something else
                         printf("unknown types.\n");
-                     }
+                    }
                 }
                 else
                 {
@@ -658,15 +685,11 @@ int main(int argc, char **argv)
                 dump_monitor_dirs(monitor_dirs_head);
                 print_List(a);
             }
-       /*     if(e->mask & IN_CLOSE_WRITE)
-            {
-                printf("file %s is modified.\n",e->name);
-            }
-        */
             if(e->mask & IN_MOVED_FROM)
             {
                 printf("moved to other place.\n");
                 printf("relat is %s\n",relat);
+                //strcat(relat,"/");
                 if(search_file_type(a,relat)=='d')
                 {
                     //it's a directory
@@ -693,20 +716,22 @@ int main(int argc, char **argv)
                     //something else
                     goto exit;
                 }
-                    printf("moved out node of file_list  success.\n");
-                    print_List(a);
-
-                 //   listDir(relat,a,"sub",fd,monitor_dirs_head);
-                 //   print_List(a);
+                printf("moved out result is:\n");
+                dump_monitor_dirs(monitor_dirs_head);
+                print_List(a);
             }
-                        /*    else
+            if(e->mask & IN_CLOSE_WRITE)
             {
-                //error
-                printf("others stat is wrong.\n");
-               // getcwd(e->name,MAX_PATH_LENGTH));
-            }*/
-        //    printf("after add name {relat} is %s\n",relat);
-            cur += sizeof(struct inotify_event) + e->len;
+                printf("file %s is modified.\n",e->name);
+            }
+          /*    else
+                {
+                    //error
+                    printf("others stat is wrong.\n");
+                // getcwd(e->name,MAX_PATH_LENGTH));
+                }*/
+            //    printf("after add name {relat} is %s\n",relat);
+                cur += sizeof(struct inotify_event) + e->len;
         }
 
         if(cur >= end)
