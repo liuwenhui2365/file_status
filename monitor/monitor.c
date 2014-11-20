@@ -18,7 +18,7 @@ struct monitor_dirs
     struct monitor_dirs *next;
 };   //The Node of List
 
-void init_monitor_dirs(struct monitor_dirs **pNode)//two level point
+void monitor_dirs_init(struct monitor_dirs **pNode)//two level point
 {
     //be careful! because *pNode is empty,so it can't read **pNode
     *pNode = malloc(sizeof(struct monitor_dirs));
@@ -30,7 +30,7 @@ void init_monitor_dirs(struct monitor_dirs **pNode)//two level point
     memset(*pNode, 0, sizeof(struct monitor_dirs));
 }
 
-struct monitor_dirs* travel_monitor_dirs(struct monitor_dirs* head)
+struct monitor_dirs* monitor_dirs_travel(struct monitor_dirs* head)
 {
     struct monitor_dirs* p = NULL;
     p = head->next;  //curial sentence
@@ -43,7 +43,7 @@ struct monitor_dirs* travel_monitor_dirs(struct monitor_dirs* head)
     return head;
 }
 
-char* search_monitor_dirs(struct monitor_dirs* head,int dir_wd)
+char* monitor_dirs_search(struct monitor_dirs* head,int dir_wd)
 {
     struct monitor_dirs* p = NULL;
     p = head;  //curial sentence
@@ -63,7 +63,7 @@ char* search_monitor_dirs(struct monitor_dirs* head,int dir_wd)
     return NULL;
 }
 
-void* remove_monitor_dirs(struct monitor_dirs* head,int fd,char* path)
+void* monitor_dirs_remove(struct monitor_dirs* head,int fd,char* path)
 {
     struct monitor_dirs* p = NULL;
     p = head->next;  //curial sentence
@@ -87,7 +87,7 @@ void* remove_monitor_dirs(struct monitor_dirs* head,int fd,char* path)
     return head;
 }
 
-void remove_monitor_bydirs(struct monitor_dirs *head,int fd,char* path)
+void monitor_bydirs_remove(struct monitor_dirs *head,int fd,char* path)
 {
     struct monitor_dirs* cur = NULL;
     struct monitor_dirs* cur_temp = NULL;
@@ -126,7 +126,7 @@ void remove_monitor_bydirs(struct monitor_dirs *head,int fd,char* path)
 }
 
 
-void dump_monitor_dirs(struct monitor_dirs *head)
+void monitor_dirs_dump(struct monitor_dirs *head)
 {
     printf("dump monitor dirs: \n");
     struct monitor_dirs* p = NULL;
@@ -140,11 +140,11 @@ void dump_monitor_dirs(struct monitor_dirs *head)
 }
 
 
-void* add_monitor_dirs(struct monitor_dirs* head,
+void* monitor_dirs_add(struct monitor_dirs* head,
                        struct monitor_dirs* new_node,
                        char   *abs_path,int dir_wd)
 {
-    struct monitor_dirs* tail = travel_monitor_dirs(head);
+    struct monitor_dirs* tail = monitor_dirs_travel(head);
     tail->next = new_node;
     strncpy(new_node->abs_path,abs_path,strlen(abs_path));//how about "="
     new_node->dir_wd = dir_wd;
@@ -154,30 +154,30 @@ void* add_monitor_dirs(struct monitor_dirs* head,
 }
 
 
-struct test
+struct monitor_node
 {
-    char filename[MAX_PATH_LENGTH];
-    char filetype;
-    struct test *next;
+    char path[MAX_PATH_LENGTH];
+    char type;
+    struct monitor_node *next;
 };   //The Node of List
 
-void initList(struct test **pNode,char *name)//two level point
+void monitor_list_init(struct monitor_node **pNode,char *name)//two level point
 {
     //be careful! because *pNode is empty,so it can't read **pNode
-    *pNode = malloc(sizeof(struct test));
+    *pNode = malloc(sizeof(struct monitor_node));
     if (*pNode == NULL)
     {
         printf("malloc error\n");
         exit(EXIT_FAILURE);
     }
-    memset(*pNode, 0, sizeof(struct test));
+    memset(*pNode, 0, sizeof(struct monitor_node));
 
    // printf("name is %s\n",name);
 }
 
-struct test* TravelList(struct test *head)
+struct monitor_node* TravelList(struct monitor_node *head)
 {
-    struct test* p = NULL;
+    struct monitor_node* p = NULL;
     p = head->next;  //curial sentence
     while(NULL != p)
     {
@@ -188,15 +188,15 @@ struct test* TravelList(struct test *head)
     return head;
 }
 
-void DeleteNode(struct test *head,char* filename)
+void moniitor_node_remove(struct monitor_node *head,char* path)
 {
-    struct test* p = NULL;
+    struct monitor_node* p = NULL;
     p = head->next;  //curial sentence
     while(NULL != p)
     {
-        if(strcmp(filename,p->filename) == 0)  //think about "=" and "=="
+        if(strcmp(path,p->path) == 0)  //think about "=" and "=="
         {
-            printf("filename : %s, filetype : %c\n",p->filename,p->filetype);
+            printf("path : %s, type : %c\n",p->path,p->type);
             head->next = p->next;
             free(p);
             p = NULL;
@@ -209,27 +209,27 @@ void DeleteNode(struct test *head,char* filename)
     }
 }
 
-void DeleteNode_bydir(struct test *head,char* filename)
+void moniitor_node_remove_bydir(struct monitor_node *head,char* path)
 {
-    struct test* cur = NULL;
-    struct test* cur_temp = NULL;
-    struct test* pre = NULL;
+    struct monitor_node* cur = NULL;
+    struct monitor_node* cur_temp = NULL;
+    struct monitor_node* pre = NULL;
     cur = head->next;  //curial sentence
     pre = head;
     while(NULL != cur)
     {
-        if(strlen(cur->filename)<strlen(filename))
+        if(strlen(cur->path)<strlen(path))
         {
             pre = cur;
             cur = cur->next;
             cur_temp = cur;
         }
-        else if(strlen(cur->filename)>=strlen(filename))
+        else if(strlen(cur->path)>=strlen(path))
         {
-            int a = strlen(filename);
-            if(strncmp(filename,cur->filename,a) == 0) //think about "=" and "=="
+            int a = strlen(path);
+            if(strncmp(path,cur->path,a) == 0) //think about "=" and "=="
             {
-                printf("filename : %s, filetype : %c\n",cur->filename,cur->filetype);
+                printf("path : %s, type : %c\n",cur->path,cur->type);
                 cur = cur->next;
                 pre->next = cur;
                 free(cur_temp);
@@ -245,16 +245,16 @@ void DeleteNode_bydir(struct test *head,char* filename)
     }
 }
 
-char _search_file_type(struct test* head,char* path)
+char _search_file_type(struct monitor_node* head,char* path)
 {
-    struct test* p = NULL;
+    struct monitor_node* p = NULL;
     p = head;  //curial sentence
     while(NULL != p)
     {
-        if(strcmp(path,p->filename)==0)  //be careful character comparsion,can't use '=='
+        if(strcmp(path,p->path)==0)  //be careful character comparsion,can't use '=='
         {
       //    printf("find abs_path: %s, dir_wd:%d\n",p->abs_path,p->dir_wd);
-            return p->filetype;
+            return p->type;
         }
         else
         {
@@ -266,7 +266,7 @@ char _search_file_type(struct test* head,char* path)
 }
 
 
-char search_file_type(struct test* head,const char* path)
+char search_file_type(struct monitor_node* head,const char* path)
 {
     char p[MAX_PATH_LENGTH] ={0};
     strcpy(p,path);
@@ -293,13 +293,13 @@ char search_file_type(struct test* head,const char* path)
 }
 
 
-void* print_List(struct test *head)
+void* print_monitor_list(struct monitor_node *head)
 {
-    struct test* p = NULL;
+    struct monitor_node* p = NULL;
     p = head->next;
     while(NULL != p)
     {
-        printf("filename: %s\tfiletype: %c\n",p->filename,p->filetype);
+        printf("path: %s\ttype: %c\n",p->path,p->type);
         head = p;
         p = p->next;
     }
@@ -308,26 +308,26 @@ void* print_List(struct test *head)
 }
 
 
-void* AddNode(struct test* h, struct test *Node,char *filename,char filetype)
+void* monitor_node_add(struct monitor_node* h, struct monitor_node *Node,char *path,char type)
 {
-    struct test *tail = TravelList(h);
+    struct monitor_node *tail = TravelList(h);
     tail->next = Node;
 /*
-    Node->filetype = malloc(sizeof(char*));
-    if(Node->filetype == NULL)
+    Node->type = malloc(sizeof(char*));
+    if(Node->type == NULL)
     {
         printf("malloc error\n");
         exit(EXIT_FAILURE);
     }
  */
-    strncpy(Node->filename,filename,strlen(filename));//how about "="
-    Node->filetype = filetype;
+    strncpy(Node->path,path,strlen(path));//how about "="
+    Node->type = type;
     Node->next = NULL;
 
     return ;
 }
 
-char listDir(char *path,struct test *a,
+char listDir(char *path,struct monitor_node *a,
              char *sign,int fd,
              struct monitor_dirs* monitor_dirs_head)
 {
@@ -376,23 +376,23 @@ char listDir(char *path,struct test *a,
                 strcat(childpath,"/");
                 printf("watch dir:%s\n",childpath);
                 struct monitor_dirs* new_node;
-                init_monitor_dirs(&new_node);
-                add_monitor_dirs(monitor_dirs_head,new_node,childpath,dir_wd);
-                struct test *name;
-                initList(&name,ent->d_name);
+                monitor_dirs_init(&new_node);
+                monitor_dirs_add(monitor_dirs_head,new_node,childpath,dir_wd);
+                struct monitor_node *name;
+                monitor_list_init(&name,ent->d_name);
                 if(sign=="add")
                 {
-                    AddNode(a,name,childpath,'d');
+                    monitor_node_add(a,name,childpath,'d');
                     listDir(abspath,a,"add",fd,monitor_dirs_head);
                 }
                 }
                 if(sign=="sub")
                 {
-                    DeleteNode(a,childpath);
+                    moniitor_node_remove(a,childpath);
                     listDir(abspath,a,"sub",fd,monitor_dirs_head);
                 }
      //        printf("list directory.\n");
-      //       print_List(a);
+      //       print_monitor_list(a);
 
         }
         else
@@ -400,26 +400,26 @@ char listDir(char *path,struct test *a,
             //it's file
              //sprintf(childpath,"%s\n",ent->d_name);
              //printf("file:%s/%s\n",childpath,ent->d_name);
-            struct test *name;
-            initList(&name,ent->d_name);
+            struct monitor_node *name;
+            monitor_list_init(&name,ent->d_name);
             strcat(childpath,"/");
             strcat(childpath,ent->d_name);
             if(sign=="add")
             {
-                AddNode(a,name,childpath,'f');
+                monitor_node_add(a,name,childpath,'f');
             }
             if(sign=="sub")
             {
-                DeleteNode(a,childpath);
+                moniitor_node_remove(a,childpath);
             }
         //     printf("list file.\n");
-        //     print_List(a);
+        //     print_monitor_list(a);
         }
     //    printf("while interior.\n");
-    //    print_List(a);  
+    //    print_monitor_list(a);  
     }
    // printf("result is\n");
-   // print_List(a);
+   // print_monitor_list(a);
 }
 
 
@@ -448,12 +448,12 @@ int main(int argc, char **argv)
     printf("\nwelcome to use monitor filesystem!\n\n");
     printf("our monitor system is used to monitor the file or directory.\n\n");
 
-    struct test* a;
-    initList(&a,"first_node");
-    printf("first node create success.\n");
+    struct monitor_node* monitor_head;
+    monitor_list_init(&monitor_head,"first_node");
+    printf("first node cremonitor_headte success.\n");
 
     struct monitor_dirs* monitor_dirs_head;
-    init_monitor_dirs(&monitor_dirs_head);
+    monitor_dirs_init(&monitor_dirs_head);
     printf("monitor_dirs first node create success.\n");
 
 
@@ -477,13 +477,13 @@ int main(int argc, char **argv)
     }
     printf("new watch dir_wd :%d\n",dir_wd);
     struct monitor_dirs* new_monitor_dirs;
-    init_monitor_dirs(&new_monitor_dirs);
+    monitor_dirs_init(&new_monitor_dirs);
     //add monitor_dirs of first node
-    add_monitor_dirs(monitor_dirs_head,new_monitor_dirs,abs_curdir,dir_wd);
-    listDir(argv[1],a,"add",fd,monitor_dirs_head);
+    monitor_dirs_add(monitor_dirs_head,new_monitor_dirs,abs_curdir,dir_wd);
+    listDir(argv[1],monitor_head,"add",fd,monitor_dirs_head);
     printf("The directory has some file or directory already:\n");
-    print_List(a);
-    dump_monitor_dirs(monitor_dirs_head);
+    print_monitor_list(monitor_head);
+    monitor_dirs_dump(monitor_dirs_head);
   //  printf("the directory of monitor is empty!\n");
 
     struct stat s;
@@ -517,13 +517,13 @@ int main(int argc, char **argv)
           //get the abs_path of current operation accord to wd
           //use a middle variable to store the value is imporant
             printf("wd is %d\n",e->wd);
-            char* match_dir = search_monitor_dirs(monitor_dirs_head,e->wd);
+            char* match_dir = monitor_dirs_search(monitor_dirs_head,e->wd);
             if (match_dir == NULL)
             {
                 printf("search is empty, continue\n");
                 break;
             }
-          //  dump_monitor_dirs(monitor_dirs_head);
+          //  monitor_dirs_dump(monitor_dirs_head);
             char relat[MAX_PATH_LENGTH] = {0};
             strcat(relat,match_dir);
             strcat(relat,e->name);
@@ -553,34 +553,34 @@ int main(int argc, char **argv)
                             goto exit;
                         }
                       //create new file_node and add to the list
-                        struct test *name;
-                        initList(&name,e->name);
+                        struct monitor_node *name;
+                        monitor_list_init(&name,e->name);
                       //  printf("wd is %d\n",e->wd);
-                        AddNode(a,name,relat,'d');
-                        printf("add directory's filename: %s, filetype: %c\
-                            success.\n",name->filename,name->filetype);
+                        monitor_node_add(monitor_head,name,relat,'d');
+                        printf("add directory's path: %s, type: %c\
+                            success.\n",name->path,name->type);
                         //create new monitor_node and add to the monitor_dirs
                        // printf("new watch dir_wd :%d\n",dir_wd);
                      //   printf("watch dir_path: %s\n",relat);
                         struct monitor_dirs* new_monitor_dirs;
-                        init_monitor_dirs(&new_monitor_dirs);
+                        monitor_dirs_init(&new_monitor_dirs);
                         //add new abs_path of creat directory
-                        add_monitor_dirs(monitor_dirs_head,new_monitor_dirs,relat,dir_wd);
+                        monitor_dirs_add(monitor_dirs_head,new_monitor_dirs,relat,dir_wd);
                        // printf("wd is %d\n",e->wd);
                       //  printf("add directory_monitor success!\n");
-                      //  dump_monitor_dirs(monitor_dirs_head);
+                      //  monitor_dirs_dump(monitor_dirs_head);
                     }
                     else if( s.st_mode & S_IFREG )
                     {
                         //it's a file
                         //create new directory_node and add to the list
                         printf("is file\n");
-                        struct test *name;
-                        initList(&name,e->name);
+                        struct monitor_node *name;
+                        monitor_list_init(&name,e->name);
                     //    printf("relat is %s\n",relat);
-                        AddNode(a,name,relat,'f');
-                        printf("add filename: %s\t filetype: %c success.\n",
-                               name->filename,name->filetype);
+                        monitor_node_add(monitor_head,name,relat,'f');
+                        printf("add path: %s\t type: %c success.\n",
+                               name->path,name->type);
                      }
                     else
                     {
@@ -599,7 +599,7 @@ int main(int argc, char **argv)
             {
                 printf("in delete\n");
                 printf("relat is %s\n",relat);
-                if(search_file_type(a,relat)=='d')
+                if(search_file_type(monitor_head,relat)=='d')
                 {
                     //it's a directory
                     printf("is dir\n");
@@ -607,18 +607,18 @@ int main(int argc, char **argv)
                     printf("delete the directory's ");
                 //  printf("delete the dir_wd is %d\n",dir_wd);
                 //  printf("e->wd is %d\n",e->wd);
-                    DeleteNode_bydir(a,relat);
-                    remove_monitor_bydirs(monitor_dirs_head,fd,relat);
+                    moniitor_node_remove_bydir(monitor_head,relat);
+                    monitor_bydirs_remove(monitor_dirs_head,fd,relat);
                     printf("delete monitor_node of directory_monitor success!\n");
-                    dump_monitor_dirs(monitor_dirs_head);
+                    monitor_dirs_dump(monitor_dirs_head);
                 }
-                else if(search_file_type(a,relat)=='f')
+                else if(search_file_type(monitor_head,relat)=='f')
                 {
                     //it's a file
                     //create new directory_node and add to the list
                     printf("is file\n");
                     printf("delete the file's ");
-                    DeleteNode(a,relat);
+                    moniitor_node_remove(monitor_head,relat);
                 }
                 else
                 {
@@ -651,23 +651,23 @@ int main(int argc, char **argv)
                         printf("is dir\n");
                         strcat(relat,"/");
 
-                        struct test *name;
-                        initList(&name,e->name);
-                        AddNode(a,name,relat,'d');
-                        printf("add directory's filename: %s, filetype: %c success.\n",name->filename,name->filetype);
+                        struct monitor_node *name;
+                        monitor_list_init(&name,e->name);
+                        monitor_node_add(monitor_head,name,relat,'d');
+                        printf("add directory's path: %s, type: %c success.\n",name->path,name->type);
 
                         struct monitor_dirs* new_monitor_dirs;
-                        init_monitor_dirs(&new_monitor_dirs);
-                        add_monitor_dirs(monitor_dirs_head,new_monitor_dirs,relat,dir_wd);
-                        listDir(relat,a,"add",fd,monitor_dirs_head);
+                        monitor_dirs_init(&new_monitor_dirs);
+                        monitor_dirs_add(monitor_dirs_head,new_monitor_dirs,relat,dir_wd);
+                        listDir(relat,monitor_head,"add",fd,monitor_dirs_head);
                     }
                     else if( s.st_mode & S_IFREG )
                     {
                         //it's a file
                         printf("is file\n");
-                        struct test *name;
-                        initList(&name,e->name);
-                        AddNode(a,name,relat,'f');
+                        struct monitor_node *name;
+                        monitor_list_init(&name,e->name);
+                        monitor_node_add(monitor_head,name,relat,'f');
                     }
                     else
                     {
@@ -682,15 +682,15 @@ int main(int argc, char **argv)
                     return 1;
                 }
                 printf("moved here result is:\n");
-                dump_monitor_dirs(monitor_dirs_head);
-                print_List(a);
+                monitor_dirs_dump(monitor_dirs_head);
+                print_monitor_list(monitor_head);
             }
             if(e->mask & IN_MOVED_FROM)
             {
                 printf("moved to other place.\n");
                 printf("relat is %s\n",relat);
                 //strcat(relat,"/");
-                if(search_file_type(a,relat)=='d')
+                if(search_file_type(monitor_head,relat)=='d')
                 {
                     //it's a directory
                     printf("is dir\n");
@@ -698,18 +698,18 @@ int main(int argc, char **argv)
                     printf("moved the directory's ");
                  //   printf("delete the dir_wd is %d\n",dir_wd);
                  //  printf("e->wd is %d\n",e->wd);
-                    DeleteNode_bydir(a,relat);
-                    remove_monitor_bydirs(monitor_dirs_head,fd,relat);
+                    moniitor_node_remove_bydir(monitor_head,relat);
+                    monitor_bydirs_remove(monitor_dirs_head,fd,relat);
                     printf("moved out monitor_node of directory_monitor success!\n");
-                    dump_monitor_dirs(monitor_dirs_head);
+                    monitor_dirs_dump(monitor_dirs_head);
                 }
-                else if(search_file_type(a,relat)=='f')
+                else if(search_file_type(monitor_head,relat)=='f')
                 {
                     //it's a file
                     //create new directory_node and add to the list
                     printf("is file\n");
                     printf("moved out the file's ");
-                    DeleteNode(a,relat);
+                    moniitor_node_remove(monitor_head,relat);
                 }
                 else
                 {
@@ -717,8 +717,8 @@ int main(int argc, char **argv)
                     goto exit;
                 }
                 printf("moved out result is:\n");
-                dump_monitor_dirs(monitor_dirs_head);
-                print_List(a);
+                monitor_dirs_dump(monitor_dirs_head);
+                print_monitor_list(monitor_head);
             }
             if(e->mask & IN_CLOSE_WRITE)
             {
