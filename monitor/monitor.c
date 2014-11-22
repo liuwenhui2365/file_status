@@ -366,10 +366,11 @@ char listDir(char *path,struct monitor_node *a,
                 //it's directory
                 dir_wd = inotify_add_watch(fd,childpath,\
                        IN_CREATE | IN_ISDIR | IN_DELETE |\
-                       IN_MOVED_TO | IN_MOVED_FROM | IN_CLOSE_WRITE );
+                       IN_MOVED_TO | IN_MOVED_FROM | IN_MODIFY);
                 if(dir_wd == -1)
                 {
                     perror("inotify_add_watch failed\n");
+                    printf("system will continue.\n");
                   //  goto exit;
                 }
                 printf("new watch dir_wd :%d\n",dir_wd);
@@ -450,7 +451,7 @@ int main(int argc, char **argv)
 
     struct monitor_node* monitor_head;
     monitor_list_init(&monitor_head,"first_node");
-    printf("first node cremonitor_headte success.\n");
+    printf("first node monitor_header success.\n");
 
     struct monitor_dirs* monitor_dirs_head;
     monitor_dirs_init(&monitor_dirs_head);
@@ -468,8 +469,7 @@ int main(int argc, char **argv)
     dir_wd = inotify_add_watch(fd,dirname,
         IN_CREATE | IN_ISDIR | IN_DELETE |
         IN_MOVED_TO | IN_MOVED_FROM |
-        IN_CLOSE_WRITE );
-
+        IN_MODIFY | IN_CLOSE_WRITE );
     if(dir_wd == -1)
     {
         perror("inotify_add_watch failed\n");
@@ -518,26 +518,28 @@ int main(int argc, char **argv)
           //use a middle variable to store the value is imporant
             printf("wd is %d\n",e->wd);
             char* match_dir = monitor_dirs_search(monitor_dirs_head,e->wd);
+            //curial step or will exit the system
             if (match_dir == NULL)
             {
                 printf("search is empty, continue\n");
                 break;
             }
-          //  monitor_dirs_dump(monitor_dirs_head);
+            //  monitor_dirs_dump(monitor_dirs_head);
             char relat[MAX_PATH_LENGTH] = {0};
             strcat(relat,match_dir);
             strcat(relat,e->name);
             //the '/' is imporant to add dir_wd
-          //  printf("before add {relat}:%s\n",relat);
+            //printf("{relat}:%s\n",relat);
             if(e->mask & IN_CREATE)
             {
-                printf("in create\n");
+                printf("CREATE\n");
+                //printf("relat is %s\n",relat);
                 if( stat(relat,&s) == 0 )
                 {
         //            printf("Mode: %lo (octal)\n", (unsigned long) s.st_mode);
                     if( s.st_mode & S_IFDIR )
                     {
-                        printf("is dir\n");
+                        printf("is  dir\n");
                         //be careful position
                         strcat(relat,"/");
                         //it's a directory
@@ -546,11 +548,11 @@ int main(int argc, char **argv)
                         dir_wd = inotify_add_watch(fd,relat,
                                 IN_CREATE | IN_ISDIR | IN_DELETE |\
                                 IN_MOVED_TO | IN_MOVED_FROM |\
-                                IN_CLOSE_WRITE );
+                                IN_MODIFY);
                         if(dir_wd == -1)
                         {
                             perror("inotify_add_watch failed\n");
-                            goto exit;
+                           // goto exit;
                         }
                       //create new file_node and add to the list
                         struct monitor_node *name;
@@ -581,23 +583,23 @@ int main(int argc, char **argv)
                         monitor_node_add(monitor_head,name,relat,'f');
                         printf("add path: %s\t type: %c success.\n",
                                name->path,name->type);
-                     }
+                    }
                     else
                     {
                        //something else
                         printf("unknown types.\n");
-                     }
+                    }
                 }
                 else
                 {
                     //error
                     perror("stat is wrong when create.\n");
-                    return 1;
+                  //  return 1;
                 }
             }
             if(e->mask & IN_DELETE)
             {
-                printf("in delete\n");
+                printf("DELETE\n");
                 printf("relat is %s\n",relat);
                 if(search_file_type(monitor_head,relat)=='d')
                 {
@@ -623,12 +625,14 @@ int main(int argc, char **argv)
                 else
                 {
                     //something else
-                    goto exit;
+                  //  goto exit;
+                    printf("can't recogninze the filetype.\n");
+                    printf("system will continue.");
                 }
             }
             if(e->mask & IN_MOVED_TO)
             {
-                printf("moved from other place.\n");
+                printf("MOVED FROM OTHER PLACE.\n");
                 //strcat(relat,"/");
                 //it's a directory
                 //get the abspath of create directory
@@ -636,13 +640,13 @@ int main(int argc, char **argv)
                 dir_wd = inotify_add_watch(fd,relat,
                         IN_CREATE | IN_ISDIR | IN_DELETE |\
                         IN_MOVED_TO | IN_MOVED_FROM |\
-                        IN_CLOSE_WRITE );
+                        IN_MODIFY );
                 if(dir_wd == -1)
                 {
                     perror("inotify_add_watch failed\n");
                     goto exit;
                 }
-                printf("relat is %s\n",relat);
+              //  printf("relat is %s\n",relat);
                 if( stat(relat,&s) == 0 )
                 {
                     if( s.st_mode & S_IFDIR )
@@ -687,8 +691,8 @@ int main(int argc, char **argv)
             }
             if(e->mask & IN_MOVED_FROM)
             {
-                printf("moved to other place.\n");
-                printf("relat is %s\n",relat);
+                printf("MOVED TO OTHER PLACE.\n");
+                //printf("relat is %s\n",relat);
                 //strcat(relat,"/");
                 if(search_file_type(monitor_head,relat)=='d')
                 {
@@ -720,18 +724,24 @@ int main(int argc, char **argv)
                 monitor_dirs_dump(monitor_dirs_head);
                 print_monitor_list(monitor_head);
             }
-            if(e->mask & IN_CLOSE_WRITE)
+            if(e->mask & IN_MODIFY)
             {
-                printf("file %s is modified.\n",e->name);
+               // printf("relat is %s\n",relat);
+                printf("file %s is modified.\n",relat);
             }
-          /*    else
+           /* if(e->mask & IN_CLOSE_WRITE)
+            {
+               // printf("relat is %s\n",relat);
+                printf("file %s is modified success.\n",relat);
+            }
+              else
                 {
                     //error
                     printf("others stat is wrong.\n");
                 // getcwd(e->name,MAX_PATH_LENGTH));
                 }*/
             //    printf("after add name {relat} is %s\n",relat);
-                cur += sizeof(struct inotify_event) + e->len;
+            cur += sizeof(struct inotify_event) + e->len;
         }
 
         if(cur >= end)
