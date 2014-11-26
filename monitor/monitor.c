@@ -125,7 +125,6 @@ void monitor_bydirs_remove(struct monitor_dirs *head,int fd,char* path)
         }
     }
 }
-
 void monitor_dirs_dump(struct monitor_dirs *head)
 {
     LOG_INFO("dump monitor dirs: \n");
@@ -138,6 +137,24 @@ void monitor_dirs_dump(struct monitor_dirs *head)
         p = p->next;
     }
 }
+
+void monitor_dirs_delete(struct monitor_dirs *head)
+{
+    struct monitor_dirs* cur = NULL;
+    if(head == NULL)
+    {
+        return ;
+    }
+    cur = head->next;  //curial sentence
+    while(NULL != cur)
+    {
+        free(head);
+        head = cur;
+        cur = cur->next;
+    }
+    monitor_dirs_dump(head);
+}
+
 
 void* monitor_dirs_add(struct monitor_dirs* head,
                        struct monitor_dirs* new_node,
@@ -244,6 +261,38 @@ void moniitor_node_remove_bydir(struct monitor_node *head,char* path)
     }
 }
 
+void* monitor_list_dump(struct monitor_node *head)
+{
+    struct monitor_node* p = NULL;
+    p = head->next;
+    while(NULL != p)
+    {
+        LOG_INFO("path: %s\ttype: %c\n",p->path,p->type);
+        head = p;
+        p = p->next;
+    }
+
+    return ;
+}
+
+
+void monitor_delete(struct monitor_node *head)
+{
+    struct monitor_node* cur = NULL;
+    if(head != NULL)
+    {
+        cur = head->next;  //curial sentence
+        while(NULL != cur)
+        {
+            free(head);
+            head = cur;
+            cur = cur->next;
+        }
+    }
+    monitor_list_dump(head);
+}
+
+
 char _search_file_type(struct monitor_node* head,char* path)
 {
     struct monitor_node* p = NULL;
@@ -263,7 +312,6 @@ char _search_file_type(struct monitor_node* head,char* path)
     }
     return 0;
 }
-
 
 char search_file_type(struct monitor_node* head,const char* path)
 {
@@ -289,21 +337,6 @@ char search_file_type(struct monitor_node* head,const char* path)
             return 0;
         }
     }
-}
-
-
-void* print_monitor_list(struct monitor_node *head)
-{
-    struct monitor_node* p = NULL;
-    p = head->next;
-    while(NULL != p)
-    {
-        LOG_INFO("path: %s\ttype: %c\n",p->path,p->type);
-        head = p;
-        p = p->next;
-    }
-
-    return ;
 }
 
 
@@ -429,7 +462,7 @@ int main(int argc, char **argv)
 
     //add my_monitor_log
     log_init("./log/log.conf","my_monitor");
-    LOG_ERROR("error");
+    LOG_DEBUG("init log success.");
 
     int len = 0;
     int fd,dir_wd;
@@ -454,7 +487,7 @@ int main(int argc, char **argv)
 
     struct monitor_node* monitor_head;
     monitor_list_init(&monitor_head,"first_node");
-    LOG_DEBUG("first node monitor_header success.\n");
+    LOG_INFO("first node monitor_header success.\n");
 
     struct monitor_dirs* monitor_dirs_head;
     monitor_dirs_init(&monitor_dirs_head);
@@ -485,12 +518,12 @@ int main(int argc, char **argv)
     monitor_dirs_add(monitor_dirs_head,new_monitor_dirs,abs_curdir,dir_wd);
     listDir(argv[1],monitor_head,"add",fd,monitor_dirs_head);
     LOG_INFO("The directory has some file or directory already:\n");
-    print_monitor_list(monitor_head);
+    monitor_list_dump(monitor_head);
     monitor_dirs_dump(monitor_dirs_head);
   //  LOG_DEBUG("the directory of monitor is empty!\n");
 
     struct stat s;
-    LOG_DEBUG("filesystem init finish.\n\n");
+    LOG_INFO("filesystem init finish.\n\n");
 
     while(1)
     {
@@ -690,7 +723,7 @@ int main(int argc, char **argv)
                 }
                 LOG_INFO("moved here result is:\n");
                 monitor_dirs_dump(monitor_dirs_head);
-                print_monitor_list(monitor_head);
+                monitor_list_dump(monitor_head);
             }
             if(e->mask & IN_MOVED_FROM)
             {
@@ -725,7 +758,7 @@ int main(int argc, char **argv)
                 }
                 LOG_DEBUG("moved out result is:\n");
                 monitor_dirs_dump(monitor_dirs_head);
-                print_monitor_list(monitor_head);
+                monitor_list_dump(monitor_head);
             }
             if(e->mask & IN_MODIFY)
             {
@@ -762,6 +795,7 @@ int main(int argc, char **argv)
 
 exit:    //be careful this format.
     close(fd);
-                     //clear the list
+    monitor_dirs_delete(monitor_dirs_head);                     //clear the list
+    monitor_delete(monitor_head);
     return 0;
 }
