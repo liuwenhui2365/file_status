@@ -10,6 +10,8 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <zlog.h>
+#include <assert.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -33,27 +35,27 @@ extern int log_init(const char* confile, const char *category);
 // =====================================================================================
 extern void log_fini();
 //¿
-#define LOG_FATAL(fmt,args...) \
+#define ZLOG_FATAL(fmt,args...) \
         zlog(log_category, __FILE__, sizeof(__FILE__)-1, \
         __func__, sizeof(__func__)-1, __LINE__, \
         ZLOG_LEVEL_FATAL, fmt, ##args)
-#define LOG_ERROR(fmt , args...) \
+#define ZLOG_ERROR(fmt , args...) \
         zlog(log_category, __FILE__, sizeof(__FILE__)-1, \
         __func__, sizeof(__func__)-1, __LINE__, \
         ZLOG_LEVEL_ERROR, fmt, ##args)
-#define LOG_WARN(fmt, args...) \
+#define ZLOG_WARN(fmt, args...) \
         zlog(log_category, __FILE__, sizeof(__FILE__)-1, \
         __func__, sizeof(__func__)-1, __LINE__, \
         ZLOG_LEVEL_WARN, fmt, ##args)
-#define LOG_NOTICE(fmt , args...) \
+#define ZLOG_NOTICE(fmt , args...) \
         zlog(log_category, __FILE__, sizeof(__FILE__)-1, \
         __func__, sizeof(__func__)-1, __LINE__, \
         ZLOG_LEVEL_NOTICE, fmt, ##args)
-#define LOG_INFO(fmt,args...) \
+#define ZLOG_INFO(fmt,args...) \
         zlog(log_category, __FILE__, sizeof(__FILE__)-1, \
         __func__, sizeof(__func__)-1, __LINE__, \
         ZLOG_LEVEL_INFO, fmt, ##args)
-#define LOG_DEBUG(fmt , args...) \
+#define ZLOG_DEBUG(fmt , args...) \
         zlog(log_category, __FILE__, sizeof(__FILE__)-1, \
         __func__, sizeof(__func__)-1, __LINE__, \
         ZLOG_LEVEL_DEBUG, fmt, ##args)

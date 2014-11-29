@@ -1,6 +1,5 @@
-#include <zlog.h>
-#include <assert.h>
 #include "mylog.h"
+
 zlog_category_t * log_category = NULL;
 // === FUNCTION
 // ======================================================================
@@ -8,6 +7,7 @@ zlog_category_t * log_category = NULL;
 // Description:
 // 从配置文件"log.conf"中读取配置信息到内存,使用分类category初始化logger
 // @param category [in]: 分类
+// 
 // =====================================================================================
 int log_init(const char* confile, const char *category)
 {
@@ -19,7 +19,6 @@ int log_init(const char* confile, const char *category)
     //找到分类,在配置文件中的category
     log_category = zlog_get_category(category);
     if (!log_category) {
-        printf("get cat fail\n");
         zlog_fini();
         return -2;
     }

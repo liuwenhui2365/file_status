@@ -1,4 +1,4 @@
-##依赖
+#依赖
 
 ###日志(zlog)
 
@@ -18,3 +18,19 @@
 
 ##使用
 * TODO 
+
+###Build
+
+gcc main.c monitor.c log/mylog.c -o daemon -lzlog
+
+###Usage
+
+sudo ./daemon MONITOR_DIR //the dir you want to monitor and sudo is must
+
+###Debug
+
+tail -f /var/log/syslog
+
+tail -f my_mointor.log
+
+
